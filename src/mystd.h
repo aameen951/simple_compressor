@@ -6,8 +6,12 @@ typedef uint16_t u16;
 typedef size_t um;
 typedef intptr_t sm;
 
+#ifndef MAX
 #define MAX(a, b) ( (a) > (b) ? (a) : (b) )
+#endif
+#ifndef MIN
 #define MIN(a, b) ( (a) < (b) ? (a) : (b) )
+#endif
 
 struct DataView
 {
@@ -23,7 +27,10 @@ struct DataBuffer
     return {data, count};
   }
 };
-inline void data_buffer_ensure_room_for(DataBuffer *buffer, um room_for)
+
+#ifdef MYSTD_IMPLEMENTATION
+
+void data_buffer_ensure_room_for(DataBuffer *buffer, um room_for)
 {
   if(buffer->count+room_for > buffer->size)
   {
@@ -33,21 +40,35 @@ inline void data_buffer_ensure_room_for(DataBuffer *buffer, um room_for)
     buffer->size = new_size;
   }
 }
-inline void data_buffer_append(DataBuffer *buffer, u8 byte)
+void data_buffer_append(DataBuffer *buffer, u8 byte)
 {
   data_buffer_ensure_room_for(buffer, 1);
   buffer->data[buffer->count] = byte;
   buffer->count += 1;
 }
-inline void data_buffer_append(DataBuffer *buffer, u16 two_bytes)
+void data_buffer_free(DataBuffer *buffer)
+{
+  free(buffer->data);
+  buffer->data = NULL;
+  buffer->count = 0;
+  buffer->size = 0;
+}
+void data_buffer_append(DataBuffer *buffer, u16 two_bytes)
 {
   data_buffer_ensure_room_for(buffer, 2);
   *(u16 *)(buffer->data + buffer->count) = two_bytes;
   buffer->count += 2;
 }
-inline void data_buffer_append_memory(DataBuffer *buffer, DataView memory)
+void data_buffer_append_memory(DataBuffer *buffer, DataView memory)
 {
   data_buffer_ensure_room_for(buffer, memory.count);
   memcpy(buffer->data+buffer->count, memory.data, memory.count);
   buffer->count += memory.count;
 }
+bool data_equal(DataView a, DataView b)
+{
+  if(a.count != b.count)return false;
+  return memcmp(a.data, b.data, a.count) == 0;
+}
+
+#endif
