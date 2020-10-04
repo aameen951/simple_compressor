@@ -87,10 +87,11 @@ int main(int argc, char **argv)
       if(VERIFY_COMPRESSION)
       {
         DataBuffer decompressed_data = {};
-        compressor.decompress(compressed_data.to_data_view(), &decompressed_data);
-        if(!data_equal(input_data, decompressed_data.to_data_view()))
+        auto succeeded = compressor.decompress(compressed_data.to_data_view(), &decompressed_data);
+        if(!succeeded || !data_equal(input_data, decompressed_data.to_data_view()))
         {
           printf("\nError: We didn't get the same data after decompressing the compressed output!\n\n");
+          return 5;
         }
         data_buffer_free(&decompressed_data);
       }
@@ -113,14 +114,19 @@ int main(int argc, char **argv)
     case AppCommand_Decompress:{
       
       DataBuffer uncompressed_data = {};
-      compressor.decompress(input_data, &uncompressed_data);
+      if(!compressor.decompress(input_data, &uncompressed_data))
+      {
+        printf("\nError: the file is corrupted. Could not decompress\n\n");
+        return 5;
+      }
+
 
       if(!write_output_file(output_file_path, uncompressed_data.to_data_view()))
       {
         printf("\nError: Failed to write the decompressed file to '%s'\n\n", output_file_path);
         return 4;
       }
-      
+
       data_buffer_free(&uncompressed_data);
 
     }break;

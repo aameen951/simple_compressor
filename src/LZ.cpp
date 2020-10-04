@@ -67,17 +67,30 @@ COMPRESS_DEF(lz_compress)
 
 DECOMPRESS_DEF(lz_decompress)
 {
-  for(um i=0; i<input.count; )
+  um i;
+  for(i=0; i<input.count-3; )
   {
-    um start = output->count;
     u8 offset = input.data[i++];
     u16 length = *(u16 *)(input.data + i);
     i += 2;
 
-    for(um j=0; j<length; j++)
+    if(offset == 0)
     {
-      if(offset == 0)data_buffer_append(output, input.data[i++]);
-      else data_buffer_append(output, output->data[start-offset+j]);
+      if(i+length > input.count)return false;
+      data_buffer_append_memory(output, {input.data+i, length});
+      i += length;
+    }
+    else
+    {
+      if((sm)output->count - (sm)offset < 0)return false;
+      data_buffer_ensure_room_for(output, length);
+      for(um j=0; j<length; j++)
+      {
+        output->data[output->count+j] = output->data[output->count-offset+j];
+      }
+      output->count += length;
     }
   }
+  if(i != input.count)return false;
+  return true;
 }

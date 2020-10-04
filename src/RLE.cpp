@@ -46,7 +46,8 @@ COMPRESS_DEF(rle_compress)
 
 DECOMPRESS_DEF(rle_decompress)
 {
-  for(um i=0; i<input.count; )
+  um i;
+  for(i=0; i<input.count-2; )
   {
     // read 16bit-LE
     u16 run_len = *(u16 *)(input.data + i);
@@ -55,11 +56,13 @@ DECOMPRESS_DEF(rle_decompress)
     if(run_len & 0x8000)
     {
       run_len = run_len & 0x7fff;
+      if(i+run_len > input.count)return false;
       data_buffer_append_memory(output, {input.data+i, run_len});
       i += run_len;
     }
     else // it is a repeated run.
     {
+      if(i >= input.count)return false;
       u8 repeated_byte = input.data[i++];
       // write the repeated byte to output.
       data_buffer_ensure_room_for(output, run_len);
@@ -69,4 +72,6 @@ DECOMPRESS_DEF(rle_decompress)
       }
     }
   }
+  if(i != input.count)return false;
+  return true;
 }
